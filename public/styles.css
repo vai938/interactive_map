@@ -1,0 +1,628 @@
+body {
+    margin: 0;
+}
+button{
+  background: none;
+  border: none;
+}
+/* ================= HEADER (Smoke Glass) ================= */
+
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 56px;
+  line-height: normal;
+  background: rgba(18, 18, 18, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+
+  z-index: 1000;
+}
+
+/* Main header layout */
+.header-content {
+  height: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+}
+
+
+header button{
+  font-size: large;
+  padding: 5px;
+  font-weight: bold;  
+  border: 2px solid #A04242;
+  border-radius: 10px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-logo {
+  width: 36px;
+  height: 36px;
+}
+
+#map-explorer-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f5f5f5;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.header-icons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-self: end;
+}
+
+/* Icon buttons */
+#settings-btn,
+#bookmark-btn,
+#help-btn {
+  color: #eaeaea;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+#settings-btn:hover,
+#bookmark-btn:hover,
+#help-btn:hover {
+  opacity: 1;
+}
+#help-btn {
+  padding: 6px 12px;
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* Login button */
+#login-btn {
+  padding: 6px 14px;
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+
+.leaflet-control-zoom.leaflet-bar.leaflet-control {
+    display: none;
+}
+
+.box-input input {
+    padding: 5px;
+    flex: 1;
+    border: none;
+    
+  background-color: none !important;
+  outline: none;
+  }
+
+#c-search-input {
+  position: relative;
+
+  background: rgba(18, 18, 18, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  height: 42px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+#c-search-input input {
+  background: transparent;
+  border: none;
+  outline: none;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 0 44px 0 14px;
+
+  color: #f5f5f5;
+  font-size: 14px;
+}
+
+#c-search-input input::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+#searchbutton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+#searchbutton:hover {
+  opacity: 1;
+}
+
+
+#map {
+  position: fixed;
+  top: 56px;      /* header height */
+  bottom: 28px;   /* footer height */
+  left: 0;
+  right: 0;
+  z-index: 0;
+}
+#infoBox {
+  position: absolute; /* Position it in the corner */
+  bottom: 50px;
+  left: 15px;
+  color: white;
+  background-color: #6f0e0edb;
+  border: 1px solid black;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000; /* Ensure it's on top of the map */
+  display: none;
+  line-height: 22px;
+}
+#search-container {
+    position: fixed;
+    top: 72px;          
+  left: 20px;
+    z-index: 1002;
+    display:flexbox;
+    flex-direction: column;
+    align-items: baseline;
+    width: 350px;
+    border-radius: 8px;
+    height: fit-content;
+}
+ 
+#search-results {
+  list-style:none;
+  display: flex;
+  border-color: rgb(0, 0, 0);
+  border-style: solid;
+  border-width: 2px;
+  flex-direction: column;
+  position: relative;
+  width: 300px;
+  padding: 0;
+  margin-top: 8px;
+  z-index: 1005;
+  max-height: 200px;
+  overflow-y: auto;
+   background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(16px);
+
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  font-size: 16px;
+}
+#searchdetails{
+  font-size: 15px;
+  display: none;
+  position: relative;
+  color: #323232;
+  margin-top: 2px;
+  margin-left: 0px;
+  padding: 10px;
+  width: 200px;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 2px solid black;
+  border-radius: 8px;
+  z-index: 1000;
+  background-color: #ffffffd7;
+}
+#searchdetails li{
+  margin-left: -30px;
+  background-color: #FFFFFF;
+  cursor: text;
+  list-style-type: none;
+}
+
+
+#left-container{
+    display: flex;
+    position: fixed;
+    z-index: 1078;
+}
+#trigger-icon{
+    font-size: 20px;
+    float: right;
+    padding: 5px;
+    z-index: 1005;
+    margin-top: 50px; /* Adjust as needed */
+    margin-left: 5px;
+    cursor: pointer;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 8px;
+    height: fit-content;
+    
+}
+#box{
+    display: none;
+    position: fixed;
+    margin-top: 120px;
+    margin-left: 10px; /* Adjust as needed */
+    z-index: 1003;
+    background-color: hsl(0, 18%, 93%);
+    border-radius: 8px;
+    padding: 20px;
+  border: 1px solid black;
+
+}
+#closeBtn,#closeBtnD {
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    float:  right;
+  }
+  .box-input {
+    position: relative;
+    display: block;
+    align-items: center;
+    margin-left: 10px;
+
+    margin-bottom: 20px;
+  }
+  .box #search-results {
+    position: absolute;
+    margin-left: 22px;
+    top: 0;
+    margin-top: 40px;
+  }
+
+  
+  #fromMap{
+    float: lfet;
+    padding: 10px;
+    cursor: pointer;
+  }
+  #find{
+    background-color: white;
+    color: black;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    float:  right;
+    border-radius: 7px;
+  }
+  #distanceResult{
+    display: none;
+    background-color: #6F0E0E;
+    margin-top: 20px;
+    border-radius: 8px;
+    padding: 10px;
+    line-height: 25px;
+    color: white;
+  }
+  #search-results li{
+    cursor: pointer;
+    margin: 3.5px;
+    background-color: #efeaea;
+    border-radius: 3px;
+    padding: 2px;
+    font-size: 13px;
+    display: flex;
+    
+  }
+  #search-results li:hover{
+    background-color: rgb(223, 242, 236);
+  }
+  
+  body{
+    font-family: 'Kumbh Sans';
+  }
+  .leaflet-control-scale-line {
+    pointer-events: none;
+   
+}
+
+#controls-box {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translate(0, -50%);
+  background-color: rgba(0, 0, 0, 0.695);
+  padding: 1px;
+  border-radius: 10px 0 0 10px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(34, 33, 33, 0);
+}
+
+#controls-box .fa {
+  color: white;
+  font-size: 20px;
+  margin: 13px;
+  cursor: pointer;
+}
+#layers-dropdown {
+  display: none;
+    position: absolute;
+    margin-right: 378px;
+    margin-top: 60px;
+
+    
+}
+#layers-dropdown button {
+  background-color: #000000b7;
+  color: white;
+  width: 100px;
+  height: 50px;
+  text-shadow: #000000;
+  padding-bottom: 0px;
+  padding-top: 30px;
+  border: 2px;
+  border-color: #000000;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 10px;
+}
+#geographical-layer{
+ position: absolute; 
+ margin-left: 105px;
+ color: black;
+ box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+ padding-left: 15px;
+
+}
+#political-layer{
+  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+  padding-left: 50px;
+}
+
+.dist-input{
+  margin-left: 7px;
+  padding: 3px;
+  flex: 1;
+  border: none;
+  background-color: white;
+  border: 2px solid black;
+  border-radius: 8px;
+  float: right;
+}
+.box .box-input{
+  margin-left: -6px;
+  margin-top: 40px;
+  margin-bottom: 40px;
+  display: flex;
+}
+#b-searchbutton{
+  z-index: 1540;
+  opacity: .5;
+  cursor: pointer;
+  
+}
+#d-searchbutton{
+  z-index: 1540;
+  opacity: .5;
+  cursor: pointer;
+  
+}
+#disclaimer,
+#keys {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* subtle dim, NOT color */
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  z-index: 2000;
+}
+
+#disclaimer li{
+  background: none;
+}
+#keys li{
+  background: none;
+}
+
+/* ================= Smoke Glass Message Panel ================= */
+
+#message,
+#keysText {
+  position: relative;
+
+  /* Smoke glass surface */
+  background: rgba(18, 18, 18, 0.65);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  color: #f5f5f5;
+
+  padding: 32px 36px;
+  margin: 0;
+  max-width: 65%;
+
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.65);
+}
+
+/* Content area */
+#messagec,
+#keysTextc {
+  max-height: 360px;
+  overflow-y: auto;
+  line-height: 1.65;
+  padding-right: 14px;
+}
+
+/* Scrollbar – subtle smoke style */
+#messagec::-webkit-scrollbar,
+#keysTextc::-webkit-scrollbar {
+  width: 8px;
+}
+
+#messagec::-webkit-scrollbar-thumb,
+#keysTextc::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+}
+
+/* Close button – smoke glass */
+#message button {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+
+  width: 34px;
+  height: 34px;
+
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+
+  cursor: pointer;
+}
+
+#message button:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+
+
+#keys button { 
+  position: absolute;
+  top:0;
+  right: 0;
+  padding: 10px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #ffffff;
+}
+
+/* ================= BOTTOM BAR / FOOTER (Smoke Glass) ================= */
+
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 12px;
+
+  background: rgba(18, 18, 18, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-weight: bold;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
+
+  color: rgba(255, 255, 255, 0.979);
+  font-size: 13px;
+
+  z-index: 1000;
+}
+footer span,
+footer div {
+  white-space: nowrap;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+#elevation{
+  align-items: right;
+  float: right;
+  margin-left: 10px;
+  opacity: 0.85;
+
+
+}
+#camera-height{
+  align-items: right;
+  float: right;
+  margin-left: 10px;
+  opacity: 0.85;
+
+}
+
+/* =========================
+   SVG POINTER MARKER
+========================= */
+
+.svg-pointer-marker {
+  pointer-events: auto;
+}
+.leaflet-interactive {
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+}
+
+.leaflet-tooltip {
+  background: #1f2937 !important;   /* dark solid */
+  color: #ffffff !important;
+  border: none !important;
+  font-size: 16px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  opacity: 1 !important;
+  z-index: 10000000;
+}
+
+.leaflet-tooltip-top:before {
+  border-top-color: #1f2937 !important;
+}
+
