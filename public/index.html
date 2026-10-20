@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="/public/styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
     integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
@@ -39,7 +40,7 @@
 <header>
   <div class="header-content">
     <div class="logo">
-      <img src="/public/map-logo.png" alt="Map Logo" class="map-logo" tabindex="-1" />
+      <img src="/public/map-logo.png" alt="Map Logo" class="map-logo" tabindex="-1" onerror="if(this.src.indexOf('/public/')!==-1)this.src='/map-logo.png';" />
       <p id="map-explorer-text" tabindex="0">
         <b>World-Map-Explorer</b>
         <span class="brand-badge">Accessible OSM</span>

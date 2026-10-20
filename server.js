@@ -1,6 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const app = express();
@@ -14,7 +15,10 @@ const __dirname = path.dirname(__filename);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Serve static files (your frontend)
+// Serve static files
+app.use("/public", express.static(path.join(__dirname, "public")));
+app.use("/src", express.static(path.join(__dirname, "src")));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(__dirname));
 
 /* ================= SEARCH API ================= */
@@ -177,6 +181,19 @@ app.all("/api/overpass", async (req, res) => {
 
 /* ================= FALLBACK ================= */
 app.use((req, res) => {
+  if (req.url.startsWith("/api/")) {
+    return res.status(404).json({ error: "API route not found" });
+  }
+
+  // Prevent returning HTML for missing assets
+  if (/\.(css|js|png|jpg|jpeg|svg|ico|mp3|webm|json|pdf|woff2?|ttf)$/i.test(req.path)) {
+    return res.status(404).type("text/plain").send("File not found");
+  }
+
+  const rootIndex = path.join(__dirname, "index.html");
+  if (fs.existsSync(rootIndex)) {
+    return res.sendFile(rootIndex);
+  }
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 

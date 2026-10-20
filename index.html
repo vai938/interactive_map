@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World-Map-Explorer</title>
+  <meta name="description" content="An accessible, interactive world map explorer designed for both visually impaired and sighted users powered by OpenStreetMap." />
+  <meta property="og:title" content="World-Map-Explorer" />
+  <meta property="og:description" content="An accessible, interactive world map explorer designed for both visually impaired and sighted users powered by OpenStreetMap." />
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="/public/styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+    integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/polyline-encoded@0.0.9/Polyline.encoded.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geometryutil@0.10.0/src/leaflet.geometryutil.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mapbox/leaflet-pip@1.1.0/leaflet-pip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <script type="module" src="/src/main.js" defer></script>
+  <script src="/src/components/Search/osmtogeojson.js"></script>
+  <script src="/src/components/DistanceFinder/Polyline.encoded.js" defer></script>
+  <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+</head>
+
+<header>
+  <div class="header-content">
+    <div class="logo">
+      <img src="/public/map-logo.png" alt="Map Logo" class="map-logo" tabindex="-1" onerror="if(this.src.indexOf('/public/')!==-1)this.src='/map-logo.png';" />
+      <p id="map-explorer-text" tabindex="0">
+        <b>World-Map-Explorer</b>
+        <span class="brand-badge">Accessible OSM</span>
+      </p>
+    </div>
+
+    <div class="header-nav">
+      <button class="header-btn" title="Keyboard Shortcuts (Alt+K)" aria-label="Open keyboard shortcuts" onclick="window.displayKeyShortcuts && window.displayKeyShortcuts()">
+        <i class="fa fa-keyboard"></i>
+        <span>Shortcuts</span>
+        <kbd>Alt+K</kbd>
+      </button>
+
+      <button class="header-btn" title="Focus on map navigation (Alt+M)" aria-label="Focus on map" onclick="window.map && window.map.getContainer().focus()">
+        <i class="fa fa-crosshairs"></i>
+        <span>Focus Map</span>
+        <kbd>Alt+M</kbd>
+      </button>
+    </div>
+
+    <div class="header-icons">
+      <a title="User Manual" id="help-btn" tabindex="0"
+        aria-label="Open user manual in new tab" href="/src/pages/user-guide/index.html" target="_blank" rel="noopener noreferrer">
+        Manual <i class="fa fa-external-link-alt" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</header>
+
+<body>
+  <!-- Floating Search & Routing Hub -->
+  <div id="left-container">
+    <div class="box-input" id="search-container" aria-label="search places">
+      <div id="c-search-input">
+        <input type="text" tabindex="0" id="search-input" placeholder="Search countries, cities, landmarks..." aria-label="Search places around the world" />
+        <button tabindex="0" id="searchbutton" aria-label="Click to search places" title="Search"><i class="fa fa-search"></i></button>
+      </div>
+
+      <div id="searchdetails" tabindex="0" class="searchdetails" style="display: none" aria-label="Search results details">
+        <button class="fas fa-times" id="closeBtnD" aria-label="Close details tab" title="Close details"
+          onclick="window.notifySreenReader && window.notifySreenReader('details tab closed')"></button>
+        <span aria-live="polite" aria-atomic="true" id="detalisElement"></span>
+      </div>
+    </div>
+
+    <button class="fas fa-directions" tabindex="0" id="trigger-icon" aria-label="Find distance between places (Ctrl+Shift+D)" title="Route & Distance Finder (Ctrl+Shift+D)"></button>
+  </div>
+
+  <!-- Map Viewport Controls Dock -->
+  <div tabindex="0" id="controls-box" aria-label="Map viewport controls">
+    <button title="Zoom In (+)" aria-label="Click to Zoom-In" class="fa fa-plus"></button>
+    <button title="Zoom Out (-)" aria-label="Click to Zoom-Out" class="fa fa-minus"></button>
+    <button title="Select Map Layers" aria-label="Click to select map layers" class="fa fa-layer-group" id="layers-btn"></button>
+    <div id="layers-dropdown" class="dropdown-content">
+      <button title="Political Map (OSM)" aria-label="Political layer" id="political-layer" class="active">Political Map</button>
+      <button title="Geographical Map (Topography)" aria-label="Geographical layer" id="geographical-layer">Geographical Map</button>
+    </div>
+    <button class="fa fa-location-arrow" id="locateme" title="Locate My Position (L)" aria-label="Locate your current position on map"></button>
+  </div>
+
+  <!-- Precision Telemetry HUD -->
+  <div id="infoBox" tabindex="-1" aria-label="Adjustable pointer location telemetry">
+    <div class="infobox-title">Target Location Telemetry</div>
+    <span id="placeDisplay">Locating target...</span>
+    <div class="infobox-grid">
+      <div class="infobox-item">
+        <span class="infobox-label">Real Distance</span>
+        <span class="infobox-value" id="distanceDisplay">-</span>
+      </div>
+      <div class="infobox-item">
+        <span class="infobox-label">Real Bearing</span>
+        <span class="infobox-value" id="realAngle">-</span>
+      </div>
+      <div class="infobox-item">
+        <span class="infobox-label">Flat Distance</span>
+        <span class="infobox-value" id="flatdistance">-</span>
+      </div>
+      <div class="infobox-item">
+        <span class="infobox-label">Map Angle</span>
+        <span class="infobox-value" id="angleDisplay">-</span>
+      </div>
+    </div>
+    <h3>Coordinates</h3>
+    <span id="coordinates">
+      <span id="lat">-</span>
+      <span id="lng">-</span>
+    </span>
+  </div>
+
+  <!-- Route & Distance Finder Modal -->
+  <div class="box" id="box" tabindex="0" aria-label="Route and distance finder dialog">
+    <button class="fas fa-times" id="closeBtn" aria-label="Close distance finder" tabindex="0" title="Close"
+      onclick="window.notifySreenReader && window.notifySreenReader('distance finder closed')"></button>
+    <h1>Route & Distance</h1>
+
+    <div class="box-input">
+      <span><i class="fas fa-circle"></i></span>
+      <div class="dist-input" id="c-beginning">
+        <input type="text" tabindex="0" id="beginning"
+          placeholder="Starting location" aria-label="Type starting place and press enter" />
+        <button tabindex="0" aria-label="Search starting point suggestions" title="Search" id="b-searchbutton"><i
+            class="fa fa-search"></i></button>
+      </div>
+    </div>
+
+    <div class="box-input">
+      <span><i class="fas fa-map-marker-alt"></i></span>
+      <div class="dist-input" id="c-destination">
+        <input tabindex="0" type="text" id="destination"
+          placeholder="Destination location" aria-label="Type destination and press enter" />
+        <button id="d-searchbutton" tabindex="0" aria-label="Search destination suggestions" title="Search"><i
+            class="fa fa-search"></i></button>
+      </div>
+    </div>
+
+    <div class="route-actions-row">
+      <button class="fas fa-map-marked-alt" title="Choose point from map cursor (Alt+L)" id="fromMap"
+        tabindex="0" aria-label="Choose selected location from map cursor"></button>
+      <button class="fas fa-arrow-circle-right" tabindex="0" id="find" title="Calculate Route"
+        aria-label="Calculate shortest distance and route"></button>
+    </div>
+
+    <div tabindex="0" id="distanceResult" aria-live="polite">
+      Distance: <span id="dist"></span><br />
+      Estimated Time: <span id="time"></span>
+    </div>
+
+    <p class="directions-credit">Routing powered by <a
+        href="https://gis-ops.com/global-open-valhalla-server-online/" target="_blank" rel="noopener noreferrer">Valhalla FOSSGIS</a></p>
+  </div>
+
+  <!-- Leaflet Map Container -->
+  <div tabindex="0" aria-label="Interactive world map. Use arrow keys to navigate cursor" id="map"></div>
+
+</body>
+
+<!-- Bottom Cartographic Telemetry Bar -->
+<footer>
+  <div class="footer-section">
+    <span id="status-bar">Ready</span>
+    <span class="footer-hint">Alt+K Shortcuts · Alt+M Focus Map · Arrow Keys Navigate</span>
+  </div>
+  <div class="footer-section footer-telemetry">
+    <span id="camera-height"></span>
+    <span id="elevation"></span>
+  </div>
+</footer>
+
+</html>

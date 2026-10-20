@@ -1,15 +1,17 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    },
     {
-      "src": "/(.*)",
-      "dest": "server.js"
+      "source": "/styles.css",
+      "destination": "/public/styles.css"
+    },
+    {
+      "source": "/map-logo.png",
+      "destination": "/public/map-logo.png"
     }
   ]
 }
