@@ -85,7 +85,7 @@ export const initialize_DistanceFinder_EventListeners = () => {
       successSound.play(); // Plays a sound to confirm selection
     } catch (error) {
       console.error("Error selecting location from map:", error);
-      alert("Focus on the starting point or destination then select point on map");
+      notifySreenReader("Focus on the starting point or destination then select point on map", true);
     }
   });
 
@@ -199,9 +199,9 @@ export function calculateDistance() {
         } else {
             const errorData = JSON.parse(route.responseText);
             if (errorData.error_code === 130) {
-                alert("Failed to parse locations. Please ensure to select a valid location from suggestions.");
+                notifySreenReader("Failed to parse locations. Please ensure to select a valid location from suggestions.", true);
             } else {
-                alert(errorData.error);
+                notifySreenReader(errorData.error || "Unable to calculate route.", true);
             }
         }
     }.bind(this));

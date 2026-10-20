@@ -4,11 +4,13 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node -c server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write",
-    "start": "node server.js"
+    "format": "prettier --write"
   },
   "author": "",
   "license": "GPL-3.0-only",

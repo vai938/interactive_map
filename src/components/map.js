@@ -30,12 +30,9 @@ map.on("locationfound", function (e) {
 });
 map.on("locationerror", function (e) {
   notifySreenReader(
-    e.code == 1 ? "Please grant loacation permission" : e.message,
+    e.code == 1 ? "Please grant location permission" : e.message,
     true
-  ); // Handle the error appropriately (e.g., show an alert or a fallback message)
-  alert(
-    e.code == 1 ? "Please grant loacation permission" : e.message
-  ); // Handle the error appropriately (e.g., show an alert or a fallback message)
+  );
 });
 
 var pane = map.createPane('customPane');

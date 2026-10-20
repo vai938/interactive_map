@@ -11,10 +11,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Serve static files (your frontend)
 app.use(express.static(__dirname));
+
 /* ================= SEARCH API ================= */
 app.get("/api/search", async (req, res) => {
   const q = req.query.q;
@@ -50,7 +52,6 @@ app.get("/api/search", async (req, res) => {
   }
 });
 
-
 /* ================= REVERSE API ================= */
 app.get("/api/reverse", async (req, res) => {
   const { lat, lon, zoom = 18 } = req.query;
@@ -72,6 +73,7 @@ app.get("/api/reverse", async (req, res) => {
   }
 });
 
+/* ================= DETAILS API ================= */
 app.get("/api/details", async (req, res) => {
   const { osmtype, osmid } = req.query;
 
@@ -79,7 +81,7 @@ app.get("/api/details", async (req, res) => {
     return res.status(400).json({});
   }
 
-  const url = `https://nominatim.openstreetmap.org/details?format=json&osmtype=${osmtype}&osmid=${osmid}&addressdetails=1&polygon_geojson=1`;
+  const url = `https://nominatim.openstreetmap.org/details?format=json&osmtype=${osmtype}&osmid=${osmid}&addressdetails=1&extratags=1&polygon_geojson=1`;
 
   try {
     const r = await fetch(url, {
@@ -96,18 +98,80 @@ app.get("/api/details", async (req, res) => {
     res.status(500).json({});
   }
 });
+
 app.get("/api/nominatim/details", async (req, res) => {
   const { osm_id } = req.query;
 
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/details?osmtype=R&osmid=${osm_id}&addressdetails=1&format=json`,
-    {
-      headers: { "User-Agent": "world-map-explorer" }
-    }
-  );
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/details?osmtype=R&osmid=${osm_id}&addressdetails=1&extratags=1&format=json`,
+      {
+        headers: { "User-Agent": "World-Map-Explorer/1.0 (localhost)" },
+      }
+    );
 
-  const data = await response.json();
-  res.json(data);
+    const data = await response.json();
+    res.json(data);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({});
+  }
+});
+
+/* ================= OVERPASS API PROXY ================= */
+app.all("/api/overpass", async (req, res) => {
+  let query = req.body?.data || req.query?.data;
+  if (!query && typeof req.body === "string") {
+    query = req.body;
+  }
+
+  if (!query) {
+    return res.status(400).json({ error: "Missing query data", elements: [] });
+  }
+
+  const endpoints = [
+    "https://overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "User-Agent": "World-Map-Explorer/1.0 (localhost)",
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json",
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const text = await response.text();
+        try {
+          const json = JSON.parse(text);
+          return res.json(json);
+        } catch {
+          // If response is not JSON (e.g. HTML error page), try next mirror
+          continue;
+        }
+      }
+    } catch {
+      // Aborted or failed, try next mirror
+      continue;
+    }
+  }
+
+  // Graceful empty elements fallback so client-side osmtogeojson never throws
+  res.json({ version: 0.6, generator: "overpass-fallback", elements: [] });
 });
 
 
@@ -117,6 +181,6 @@ app.use((req, res) => {
 });
 
 /* ================= START SERVER ================= */
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running at http://0.0.0.0:${PORT}`);
 });

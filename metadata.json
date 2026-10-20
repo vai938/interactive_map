@@ -1,0 +1,7 @@
+{
+  "name": "World-Map-Explorer",
+  "description": "An accessible, interactive world map explorer designed for both visually impaired and sighted users powered by OpenStreetMap.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

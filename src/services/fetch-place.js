@@ -1,4 +1,4 @@
-﻿import { detalisElement } from '../utils/dom-elements.js';
+import { detalisElement } from '../utils/dom-elements.js';
 import { notifyLoading, notifySreenReader } from '../utils/accessibility.js';
 import { isInindiaKashmir } from "../services/nominatim.js";
 import { fetchDetails } from '../components/Search/place-details.js';
@@ -90,57 +90,120 @@ export function cancelShowPlaceDetails() {
 
 
 async function geoJSON(type, id) {
-  let area=null;
+  let area = null;
   geoLayer && geoLayer?.remove();
-  marker.clearGeoJson() //removing if there any already
-  var result = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body:
-      'data=' +
-      encodeURIComponent(`
-            [out:json][timeout:25];(${type}(${id}););out geom;`),
-  }).then((data) => data.json());
+  marker.clearGeoJson(); // removing if there any already
 
-  result = osmtogeojson(result); //converting JSON to geoJSON
-  if (result.features[0].properties.name === 'India') {
-    result = IndiaFull;
-  }
-  osmIds.forEach((value) => {
-    // deduct kashmir parts from china and pak
-    if (value == id) {
-      result = turf.difference(result.features[0], kasmir.features[0]);
-    }
-  });
-  let centre; // = turf.centerOfMass(result);
+  let result = null;
+  let centre = null;
+  const osmTypeLetter = type ? type.toUpperCase().charAt(0) : "R";
+
+  // 1. Try to fetch polygon geometry directly from /api/details proxy
   try {
     const addressData = await fetch(
-      `/api/details?osmtype=${osmtype}&osmid=${id}`,
+      `/api/details?osmtype=${osmTypeLetter}&osmid=${id}`,
       headerofNominatim
     ).then((response) => response.json());
-    centre = addressData.geometry.coordinates.reverse();
+
+    if (addressData?.geometry) {
+      result = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {
+              name: addressData.localname || addressData.names?.name || "",
+              admin_level: addressData.admin_level,
+            },
+            geometry: addressData.geometry,
+          },
+        ],
+      };
+    }
+
+    if (addressData?.centroid?.coordinates) {
+      centre = [addressData.centroid.coordinates[1], addressData.centroid.coordinates[0]];
+    } else if (addressData?.geometry?.coordinates && addressData.geometry.type === "Point") {
+      centre = [addressData.geometry.coordinates[1], addressData.geometry.coordinates[0]];
+    }
   } catch (error) {
-    centre = turf.centerOfMass(result);
-    centre = centre.geometry.coordinates.reverse();
+    console.warn("Could not retrieve details from Nominatim proxy:", error);
   }
-  if(leafletPip.pointInLayer(L.latLng(centre), geoLayer=L.geoJson(result,Options)).length<=0){
-    map.fitBounds(geoLayer.getBounds());
-    geoLayer.addTo(map)
 
-  }if (!result || !result.features || result.features.length === 0) {
-  console.warn("No geojson features returned", result);
-  return;
-}
-  else{
-    notifySreenReader('The curser is inside the boundary, Inbound navigation is enabled');
-    marker.setGeoJson(result);
-    area = turf.area(result);
-    if (!result || !result.features) {
-  notifySreenReader("No data found for this place");
-  return;
-}
+  // 2. If polygon not available from Nominatim, fallback to Overpass proxy
+  if (!result || !result.features || result.features.length === 0) {
+    try {
+      const overpassRaw = await fetch("/api/overpass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: `[out:json][timeout:25];(${type}(${id}););out geom;`,
+        }),
+      }).then((res) => res.json());
+
+      if (overpassRaw && Array.isArray(overpassRaw.elements) && overpassRaw.elements.length > 0) {
+        result = osmtogeojson(overpassRaw);
+      }
+    } catch (err) {
+      console.warn("Overpass fetch failed:", err);
+    }
   }
-  marker.setLatLng(centre);
+
+  if (result?.features?.[0]?.properties?.name === "India") {
+    result = IndiaFull;
+  }
+
+  if (result?.features?.[0]) {
+    osmIds.forEach((value) => {
+      if (value == id && kasmir?.features?.[0]) {
+        try {
+          result = turf.difference(result.features[0], kasmir.features[0]);
+        } catch (e) {
+          console.warn("turf.difference error:", e);
+        }
+      }
+    });
+  }
+
+  // Determine center of mass if not already set
+  if (!centre && result?.features?.[0]) {
+    try {
+      const centerObj = turf.centerOfMass(result);
+      if (centerObj?.geometry?.coordinates) {
+        centre = [centerObj.geometry.coordinates[1], centerObj.geometry.coordinates[0]];
+      }
+    } catch (error) {
+      console.warn("turf.centerOfMass failed:", error);
+    }
+  }
+
+  if (result && result.features && result.features.length > 0) {
+    try {
+      geoLayer = L.geoJson(result, Options);
+      if (centre && typeof leafletPip !== "undefined" && leafletPip.pointInLayer) {
+        if (leafletPip.pointInLayer(L.latLng(centre), geoLayer).length <= 0) {
+          map.fitBounds(geoLayer.getBounds());
+        }
+      } else {
+        map.fitBounds(geoLayer.getBounds());
+      }
+      geoLayer.addTo(map);
+
+      notifySreenReader("The cursor is inside the boundary, Inbound navigation is enabled");
+      marker.setGeoJson(result);
+      area = turf.area(result);
+    } catch (e) {
+      console.warn("Could not apply geoLayer to map:", e);
+    }
+  } else {
+    notifySreenReader("Location found");
+  }
+
+  if (centre) {
+    marker.setLatLng(centre);
+    map.setView(centre, Math.max(map.getZoom(), 8));
+  }
+
   return area;
-
 }
 

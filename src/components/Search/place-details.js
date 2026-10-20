@@ -1,53 +1,70 @@
-﻿import { tosqKMorMeter } from "../../utils/to-km-or-meter.js";
+import { tosqKMorMeter } from "../../utils/to-km-or-meter.js";
 import { fetchPrefix } from "./fetch-prefix.js";
 import { countryTemplate, districtTemplate, riverTemplate, stateTemplate } from "./templates.js";
 
 export async function fetchDetails(result, area) {
-  
-  //fetch details of the place based on country, state, district, river, or other
+  // fetch details of the place based on country, state, district, river, or other
   const { osm_type, osm_id, display_name } = result;
-  const tags = await getTagsFromOverpass(osm_type, osm_id);
-  const adminLevel = parseInt(tags["admin_level"]);
+  const tags = (await getTagsFromOverpass(osm_type, osm_id)) || {};
+  const adminLevel = parseInt(tags["admin_level"] || 0);
   if (area) area = tosqKMorMeter(area);
-  if (adminLevel <= 2) return fetchCountryDetails(display_name, osm_type, osm_id, area);
-  if ([3, 4].includes(adminLevel)) return fetchStateDetails(display_name, osm_type, osm_id, area);
-  if (adminLevel === 5) return fetchDistrictDetails(display_name, osm_type, osm_id, area);
-  if (tags["type"] === "waterway" || tags["waterway"] === "river") return fetchRiverDetails(tags, result);
+
+  try {
+    if (tags["type"] === "waterway" || tags["waterway"] === "river") {
+      return await fetchRiverDetails(tags, result, area);
+    }
+    if (adminLevel && adminLevel <= 2) {
+      return await fetchCountryDetails(display_name, osm_type, osm_id, area);
+    }
+    if (adminLevel && [3, 4].includes(adminLevel)) {
+      return await fetchStateDetails(display_name, osm_type, osm_id, area);
+    }
+    if (adminLevel && adminLevel === 5) {
+      return await fetchDistrictDetails(display_name, osm_type, osm_id, area);
+    }
+  } catch (err) {
+    console.warn("Detailed template formatting failed, falling back to basic details:", err);
+  }
+
   return fetchOtherDetails(tags, result, area);
 }
 
 async function fetchCountryDetails(displayName, osm_type, osm_id, area) {
-  const { tags, center } = await getOverpassData(osm_type, osm_id);
-  const wikidataDetails = await fetchWikidataDetails(displayName);
-  const boundingCoordinates = await fetchBoundingCoordinates(wikidataDetails);
+  const overpassData = (await getOverpassData(osm_type, osm_id)) || { tags: {}, center: { lat: 0, lon: 0 } };
+  const tags = overpassData.tags || {};
+  const center = overpassData.center || { lat: 0, lon: 0 };
+  const wikidataDetails = (await fetchWikidataDetails(displayName)) || {};
+  const boundingCoordinates = (await fetchBoundingCoordinates(wikidataDetails)) || [];
 
   const details = {
-    capital: await fetchClaimValue(wikidataDetails, "P36"),
-    continent: await fetchClaimValue(wikidataDetails, "P30"),
-    language: await fetchMultipleClaims(wikidataDetails, "P37"),
-    population: getClaimValue(wikidataDetails.claims?.P1082?.[0]),
-    borders: await fetchMultipleClaims(wikidataDetails, "P47"),
-    area: area,
+    capital: (await fetchClaimValue(wikidataDetails, "P36")) || "Unknown",
+    continent: (await fetchClaimValue(wikidataDetails, "P30")) || "Unknown",
+    language: (await fetchMultipleClaims(wikidataDetails, "P37")) || "Unknown",
+    population: getClaimValue(wikidataDetails.claims?.P1082?.[0]) || "Unknown",
+    borders: (await fetchMultipleClaims(wikidataDetails, "P47")) || "None recorded",
+    area: area || "Unknown",
     coordinates: `${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}`,
-    northernmostPoint: boundingCoordinates[0],
-    southernmostPoint: boundingCoordinates[1],
-    easternmostPoint: boundingCoordinates[2],
-    westernmostPoint: boundingCoordinates[3],
+    northernmostPoint: boundingCoordinates[0] || "Unknown",
+    southernmostPoint: boundingCoordinates[1] || "Unknown",
+    easternmostPoint: boundingCoordinates[2] || "Unknown",
+    westernmostPoint: boundingCoordinates[3] || "Unknown",
   };
 
   return formatOutput(displayName, details, countryTemplate);
 }
 
 async function fetchStateDetails(displayName, osm_type, osm_id, area) {
-  const { tags, center } = await getOverpassData(osm_type, osm_id);
-  const wikidataDetails = await fetchWikidataEntity(tags.wikidata);
+  const overpassData = (await getOverpassData(osm_type, osm_id)) || { tags: {}, center: { lat: 0, lon: 0 } };
+  const tags = overpassData.tags || {};
+  const center = overpassData.center || { lat: 0, lon: 0 };
+  const wikidataDetails = tags.wikidata ? (await fetchWikidataEntity(tags.wikidata)) || {} : {};
 
   const details = {
-    country: await fetchClaimValue(wikidataDetails, "P17"),
-    capital: await fetchClaimValue(wikidataDetails, "P36"),
-    area: area,
+    country: (await fetchClaimValue(wikidataDetails, "P17")) || "Unknown",
+    capital: (await fetchClaimValue(wikidataDetails, "P36")) || "Unknown",
+    area: area || "Unknown",
     coordinates: `${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}`,
-    borders: await fetchMultipleClaims(wikidataDetails, "P47"),
+    borders: (await fetchMultipleClaims(wikidataDetails, "P47")) || "None recorded",
     summary: wikidataDetails.descriptions?.en?.value || "No summary available.",
   };
 
@@ -55,14 +72,16 @@ async function fetchStateDetails(displayName, osm_type, osm_id, area) {
 }
 
 async function fetchDistrictDetails(displayName, osm_type, osm_id, area) {
-  const { tags, center } = await getOverpassData(osm_type, osm_id);
-  const wikidataDetails = await fetchWikidataEntity(tags.wikidata);
+  const overpassData = (await getOverpassData(osm_type, osm_id)) || { tags: {}, center: { lat: 0, lon: 0 } };
+  const tags = overpassData.tags || {};
+  const center = overpassData.center || { lat: 0, lon: 0 };
+  const wikidataDetails = tags.wikidata ? (await fetchWikidataEntity(tags.wikidata)) || {} : {};
 
   const details = {
-    state: await fetchClaimValue(wikidataDetails, "P131"),
-    area: area,
+    state: (await fetchClaimValue(wikidataDetails, "P131")) || "Unknown",
+    area: area || "Unknown",
     coordinates: `${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}`,
-    borders: await fetchMultipleClaims(wikidataDetails, "P47"),
+    borders: (await fetchMultipleClaims(wikidataDetails, "P47")) || "None recorded",
     summary: wikidataDetails.descriptions?.en?.value || "No summary available.",
   };
 
@@ -73,49 +92,115 @@ async function fetchRiverDetails(tags, result, area = null) {
   const wikidataEntity = tags.wikidata ? await fetchWikidataEntity(tags.wikidata) : null;
 
   const details = {
-    length: wikidataEntity ? getClaimValue(wikidataEntity.claims?.P2043?.[0]) + " K M" : "Unknown",
+    length: wikidataEntity ? getClaimValue(wikidataEntity.claims?.P2043?.[0]) + " KM" : "Unknown",
     origin: wikidataEntity ? await fetchClaimValue(wikidataEntity, "P885") : "Unknown",
     mouth: wikidataEntity ? await fetchClaimValue(wikidataEntity, "P403") : "Unknown",
     tributaries: wikidataEntity ? await fetchMultipleClaims(wikidataEntity, "P974") : "Unknown",
   };
 
-  return formatOutput(`River: ${tags.name || "Unknown"}`, details, riverTemplate, area);
+  return formatOutput(`River: ${tags.name || result.name || "Unknown"}`, details, riverTemplate, area);
 }
 
 async function fetchOtherDetails(tags, result, area) {
-  let prefix = await fetchPrefix(tags);
+  let prefix = "";
+  try {
+    prefix = await fetchPrefix(tags || {});
+  } catch {
+    prefix = "";
+  }
+
   let data = `
-      <h3>Details</h3>
+      <h3>Place Details</h3>
       <ul>
-      <li>Name : ${result.name}</li>
-      <li>Type : ${prefix != "" ? prefix : result.type}</li>
+      <li><strong>Name:</strong> <span>${result.name || result.display_name?.split(",")?.[0] || "Unknown"}</span></li>
+      <li><strong>Type:</strong> <span>${prefix || result.type || result.class || "Location"}</span></li>
       `;
-  data += area ? `<li>Area : ${area}</li>` : "";
+  data += area ? `<li><strong>Area:</strong> <span>${area}</span></li>` : "";
+  if (result.lat && result.lon) {
+    data += `<li><strong>Coordinates:</strong> <span>${parseFloat(result.lat).toFixed(4)}, ${parseFloat(result.lon).toFixed(4)}</span></li>`;
+  }
   data += `
-      <li>Address : ${result.display_name}</li></ul>
+      <li><strong>Address:</strong> <span>${result.display_name}</span></li></ul>
       `;
   return data;
 }
 
 // Utility Functions
 async function getTagsFromOverpass(osm_type, osm_id) {
-  const query = `[out:json]; ${osm_type}(${osm_id}); out tags;`;
-  const result = await fetchOverpass(query);
-  return result.elements[0]?.tags || {};
+  try {
+    const query = `[out:json]; ${osm_type}(${osm_id}); out tags;`;
+    const result = await fetchOverpass(query);
+    if (result?.elements?.[0]?.tags) {
+      return result.elements[0].tags;
+    }
+  } catch (err) {
+    console.warn("getTagsFromOverpass error:", err);
+  }
+
+  // Fallback to /api/details from Nominatim which includes extratags
+  try {
+    const osmTypeLetter = osm_type ? osm_type.toUpperCase().charAt(0) : "R";
+    const details = await fetch(`/api/details?osmtype=${osmTypeLetter}&osmid=${osm_id}`)
+      .then((r) => r.json());
+    return {
+      admin_level: details?.admin_level,
+      name: details?.localname || details?.names?.name,
+      ...(details?.extratags || {}),
+    };
+  } catch {
+    return {};
+  }
 }
 
 async function getOverpassData(osm_type, osm_id) {
-  const query = `[out:json]; ${osm_type}(${osm_id}); out tags center;`;
-  const result = await fetchOverpass(query);
-  return result.elements[0];
+  try {
+    const query = `[out:json]; ${osm_type}(${osm_id}); out tags center;`;
+    const result = await fetchOverpass(query);
+    if (result?.elements?.[0]) {
+      return result.elements[0];
+    }
+  } catch (err) {
+    console.warn("getOverpassData error:", err);
+  }
+
+  // Fallback to /api/details
+  try {
+    const osmTypeLetter = osm_type ? osm_type.toUpperCase().charAt(0) : "R";
+    const details = await fetch(`/api/details?osmtype=${osmTypeLetter}&osmid=${osm_id}`)
+      .then((r) => r.json());
+    return {
+      tags: {
+        admin_level: details?.admin_level,
+        name: details?.localname || details?.names?.name,
+        ...(details?.extratags || {}),
+      },
+      center: {
+        lat: details?.centroid?.coordinates?.[1] || 0,
+        lon: details?.centroid?.coordinates?.[0] || 0,
+      },
+    };
+  } catch {
+    return { tags: {}, center: { lat: 0, lon: 0 } };
+  }
 }
 
 async function fetchOverpass(query) {
-  const response = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: `data=${encodeURIComponent(query)}`,
-  });
-  return response.json();
+  try {
+    const response = await fetch("/api/overpass", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: query }),
+    });
+    if (!response.ok) {
+      throw new Error(`Overpass proxy error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (err) {
+    console.warn("fetchOverpass error:", err);
+    return { elements: [] };
+  }
 }
 
 async function fetchWikidataDetails(displayName) {

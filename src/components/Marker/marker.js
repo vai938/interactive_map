@@ -1,4 +1,4 @@
-﻿import {
+import {
   InboundMarkerMove,
   markerMove,
   markerShortcuts,
@@ -160,35 +160,45 @@ this.setTooltipContent(`
   _movementWhenGeojson: InboundMarkerMove,
   setLatLng(latlng) {
     this._oldPosition = this.getLatLng();
-    correctIfOutOfMap(latlng);
-    L.CircleMarker.prototype.setLatLng.call(this, latlng);
+    const normalized = L.latLng(latlng);
+    correctIfOutOfMap(normalized);
+    L.CircleMarker.prototype.setLatLng.call(this, normalized);
+
     findplaceNamAandData.bind(this)(this).then((place) => {
-  const name =
-    place?.name ||
-    place?.display_name ||
-    place?.address?.city ||
-    place?.address?.state ||
-    place?.address?.country ||
-    "Location";
+      const name =
+        place?.name ||
+        place?.display_name ||
+        place?.address?.city ||
+        place?.address?.state ||
+        place?.address?.country ||
+        "Location";
 
-  this.setTooltipContent(`
-    <strong>${name}</strong><br/>
-    Lat: ${latlng.lat.toFixed(5)}<br/>
-    Lng: ${latlng.lng.toFixed(5)}
-  `);
-});
+      const currentLatLng = this.getLatLng() || normalized;
+      const latStr = currentLatLng?.lat !== undefined ? currentLatLng.lat.toFixed(5) : "0.00000";
+      const lngStr = currentLatLng?.lng !== undefined ? currentLatLng.lng.toFixed(5) : "0.00000";
 
-    this._onPositionChange(latlng);
+      this.setTooltipContent(`
+        <strong>${name}</strong><br/>
+        Lat: ${latStr}<br/>
+        Lng: ${lngStr}
+      `);
+    });
+
+    this._onPositionChange(normalized);
     return this;
   },
 
   // Custom method to handle position changes
   async _onPositionChange(latlng) {
-    // if (!this._placeBorderofSelectedLocation) {
-    checkBorderCrossed.bind(this)(
-      map.project(this._oldPosition).distanceTo(map.project(latlng))
-    );
-    // }
+    const currentPos = this.getLatLng() || L.latLng(latlng);
+    const oldPos = this._oldPosition || currentPos;
+    try {
+      checkBorderCrossed.bind(this)(
+        map.project(oldPos).distanceTo(map.project(currentPos))
+      );
+    } catch {
+      // Graceful fallback for distance check
+    }
     this._borderPoints = findborderpoints.bind(this)(this._geoJson); // Update border points on every position change
     fetchElevation(this);
   },
@@ -197,37 +207,40 @@ this.setTooltipContent(`
 export default Marker;
 
 const fetchElevation = _.throttle(async (marker) => {
+  const currentPos = marker?.getLatLng();
+  if (!currentPos || currentPos.lat === undefined || currentPos.lng === undefined) return;
   fetch(
-    `https://api.open-elevation.com/api/v1/lookup?locations=${
-      marker.getLatLng().lat
-    },${marker.getLatLng().lng}`
+    `https://api.open-elevation.com/api/v1/lookup?locations=${currentPos.lat},${currentPos.lng}`
   )
     .then((response) => response.json())
     .then((data) => {
-      if (data.results[0].elevation) {
-        document.getElementById("elevation").innerHTML =
-          `Altitude: ${data.results[0].elevation} meters`;
+      if (data?.results?.[0]?.elevation !== undefined) {
+        const elevEl = document.getElementById("elevation");
+        if (elevEl) {
+          elevEl.innerHTML = `Altitude: ${data.results[0].elevation} meters`;
+        }
       }
     })
-    .catch((error) => {
-      console.error("Error in fetching place name:", error);
-    });
+    .catch(() => {});
 }, 1001);
 
 function correctIfOutOfMap(coord) {
-  //function to correct the marker position if it goes out of the map and re allocate it to the other side
+  if (!coord) return coord;
   const wrap = (value) => (value < -180 ? 180 : value > 180 ? -180 : value);
 
-  coord[0] = wrap(coord[0]);
-  if (coord[0] !== wrap(coord[0])) {
-    notifySreenReader(`Curser moved to other side of the map`, true);
-  }
-
-  if (coord?.lng !== undefined) {
+  if (Array.isArray(coord)) {
+    if (coord[1] !== undefined) {
+      const newLng = wrap(coord[1]);
+      if (coord[1] !== newLng) {
+        coord[1] = newLng;
+        notifySreenReader(`Cursor moved to other side of the map`, true);
+      }
+    }
+  } else if (coord.lng !== undefined) {
     const newLng = wrap(coord.lng);
     if (coord.lng !== newLng) {
       coord.lng = newLng;
-      notifySreenReader(`Curser moved to other side of the map`, true);
+      notifySreenReader(`Cursor moved to other side of the map`, true);
     }
   }
 

@@ -3,11 +3,11 @@ import { addListenerstoUI } from "./layout/add-listeners-to-ui.js";
 import { map } from "./components/map.js";
 import { Marker } from "./components/Marker/marker.js";
 import { addDisclaimer } from "./layout/disclaimer.js";
-import { detailsCloseButton, distanceBox, distanceIcon, input } from "./utils/dom-elements.js";
+import { detailsCloseButton, detalisElement, distanceBox, distanceIcon, input } from "./utils/dom-elements.js";
 import { lockTabKey } from "./utils/keydown-helpers.js";
 import { closeSound, successSound } from "./utils/sounds.js";
-let marker
-addDisclaimer() // Add a disclaimer to the UI
+let marker;
+addDisclaimer(); // Add a disclaimer to the UI
 
 fetch('https://ipinfo.io/json') //fetching the location of the user and setting the map to that location, if failed then setting it to the default location
   .then(response => response.json())
@@ -102,7 +102,7 @@ keysText.innerHTML = `<h2>Keyboard Shortcuts for World-Map-Explorer</h2>
 const closeButtonforKeys = document.createElement('button');
 closeButtonforKeys.id = 'close-button-k';
 closeButtonforKeys.setAttribute('aria-label', 'Close keys');
-closeButtonforKeys.textContent = 'X';
+closeButtonforKeys.innerHTML = '<i class="fa fa-times"></i>';
 const lockTabKeyRefer = (event)=> lockTabKey(event, keysText, closeButtonforKeys)
 
   closeButtonforKeys.addEventListener('click', () => {
@@ -113,12 +113,13 @@ const lockTabKeyRefer = (event)=> lockTabKey(event, keysText, closeButtonforKeys
   keysText.appendChild(closeButtonforKeys);
   keysTextContainer.appendChild(keysText);
   keys.appendChild(keysTextContainer);
-function displayKeyShortcuts(){
-   document.body.prepend(keys);
-          successSound.play();
-          document.addEventListener("keydown", lockTabKeyRefer);
-  
-          setTimeout(() => {
-              keysText.focus();
-          }, 0);
+export function displayKeyShortcuts() {
+  document.body.prepend(keys);
+  successSound.play();
+  document.addEventListener("keydown", lockTabKeyRefer);
+
+  setTimeout(() => {
+    keysText.focus();
+  }, 0);
 }
+window.displayKeyShortcuts = displayKeyShortcuts;

@@ -6,6 +6,7 @@ import { fetchCurrentLocation } from '../services/current-location.js';
 import { closeSearchResultsOnClickOutside } from '../utils/general-events.js';
 import { closeSound } from '../utils/sounds.js';
 import { map } from '../components/map.js';
+import { notifySreenReader } from '../utils/accessibility.js';
 
 
 
@@ -69,18 +70,21 @@ detailsCloseButton.addEventListener('click', function () {
 
 
   geographicalLayerBtn.addEventListener("click", function () {
-    // Add your logic to switch to the geographical layer
-    layersDropdown.style.display = "none"; // Hide dropdown
+    layersDropdown.style.display = "none";
     tileLayerPolitical.remove();
     tileLayerGeographical.addTo(map);
-    notifySreenReader("Switched to geograhical map");
+    geographicalLayerBtn.classList.add("active");
+    politicalLayerBtn.classList.remove("active");
+    notifySreenReader("Switched to geographical map");
   });
+
   // Event listener for political layer
   politicalLayerBtn.addEventListener("click", function () {
-    // Add your logic to switch to the political layer
-    layersDropdown.style.display = "none"; // Hide dropdown
+    layersDropdown.style.display = "none";
     tileLayerGeographical.remove();
     tileLayerPolitical.addTo(map);
+    politicalLayerBtn.classList.add("active");
+    geographicalLayerBtn.classList.remove("active");
     notifySreenReader("Switched to political map");
   });
 }

@@ -1,4 +1,4 @@
-﻿import { map } from "../components/map.js";
+import { map } from "../components/map.js";
 import { isInindiaKashmir } from "../services/nominatim.js";
 import { notifySreenReader } from "../utils/accessibility.js";
 import { geocodingAPI, headerofNominatim } from "../utils/to-km-or-meter.js";
@@ -34,6 +34,6 @@ export async function findplaceNamAandData(point, lat, lon, zoom) {
     notifySreenReader(name, true);
     return { name: name, data: d };
   } else {
-    alert("click somewhere first!");
+    notifySreenReader("Click somewhere first!", true);
   }
 }

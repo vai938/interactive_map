@@ -1,4 +1,4 @@
-﻿
+
 import { clickSound } from '../../utils/sounds.js';
 import { findplaceNamAandData } from '../../services/find-place-name-and-data.js';
 import { map } from '../map.js';
@@ -117,8 +117,14 @@ function getBorderDistance(event) { //for getting distance from border
   const direction = directions[event.key];
   if (!direction || !this._borderPoints) return;
 
+  const targetPoint = this._borderPoints[direction.point];
+  if (!targetPoint) {
+    notifySreenReader(`No border found ${direction.label}`, true);
+    return;
+  }
+
   const distance = toKMorMeter(
-    this.getLatLng().distanceTo(this._borderPoints[direction.point])
+    this.getLatLng().distanceTo(targetPoint)
   );
   notifySreenReader(`${distance} ${direction.label}`, true);
 }
@@ -155,7 +161,7 @@ function getScaledDistance() { //for getting distance per key press
       true
     );
   } catch (error) {
-    alert('Add curser first');
+    notifySreenReader('Add cursor first', true);
   }
 }
 
@@ -198,23 +204,25 @@ function handleKeyDPress(event) {
   pressCount++;
 
   const borderpoints = this._borderPoints;
-  if (!this._geoJson) {
+  if (!this._geoJson || !borderpoints) {
     return notifySreenReader('No border found, Please try again', true);
   }
 
-  const getDistance = (point) =>
-    this.getLatLng().distanceTo(borderpoints[point]);
+  const getDistance = (point) => {
+    if (!borderpoints[point]) return 0;
+    return this.getLatLng().distanceTo(borderpoints[point]);
+  };
+
   const distances =
-  pressCount === 1
-    ? `${toKMorMeter(getDistance('east')+getDistance('west'))} to east from west`
-    : `${toKMorMeter(getDistance('north')+getDistance('south'))} to north from south`;
-    notifyDistance(distances)
+    pressCount === 1
+      ? `${toKMorMeter(getDistance('east') + getDistance('west'))} to east from west`
+      : `${toKMorMeter(getDistance('north') + getDistance('south'))} to north from south`;
+  notifyDistance(distances);
 
   if (pressCount === 2) pressCount = 0; // Reset after second press
- } catch (error) {
-  console.error(error);
+} catch (error) {
   notifySreenReader('No border found, Please try again', true);
- }
+}
 }
 
 
